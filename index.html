@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Niv Imber - Career Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .hebrew-font { font-family: 'Assistant', sans-serif; }
+        [contenteditable="true"] { outline: 1px dashed #3b82f6; outline-offset: 2px; background-color: rgba(239, 246, 255, 0.5); border-radius: 2px; }
+        .cv-bubble { display: inline-block; padding: 4px 10px; background-color: white; border: 1px solid #e2e8f0; color: #334155; border-radius: 6px; font-size: 10px; font-weight: 500; margin: 2px; white-space: nowrap; }
+        @media print { .no-print { display: none !important; } .resume-page { box-shadow: none !important; margin: 0 !important; width: 100% !important; } }
+        .resume-page { background: white; width: 210mm; min-height: 297mm; margin: 1rem auto; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .tab-active { border-bottom: 2px solid #1e293b; color: #1e293b; font-weight: 600; }
+        #auth-screen { position: fixed; inset: 0; background: #0f172a; z-index: 1000; display: flex; align-items: center; justify-content: center; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen">
+        <div class="text-center p-8 bg-slate-800 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-700">
+            <div class="w-16 h-16 bg-blue-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h1 class="text-2xl font-bold mb-2">Private Dashboard</h1>
+            <p id="auth-status" class="text-slate-400 text-sm mb-8">Niv Imber's Career Management</p>
+            
+            <div id="auth-loading" class="hidden py-4">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+            </div>
+
+            <div id="auth-actions">
+                <button onclick="window.handleLogin()" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition shadow-lg">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5"> Sign in with Google
+                </button>
+            </div>
+
+            <div id="auth-error" class="mt-6 p-4 bg-red-900/30 border border-red-500/50 text-red-100 text-xs rounded-xl hidden font-medium"></div>
+            
+            <div id="denied-actions" class="hidden mt-4">
+                <button onclick="window.handleLogout()" class="text-xs text-slate-400 underline hover:text-white">Try another account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP UI -->
+    <div id="app-content" class="hidden">
+        <div class="no-print bg-slate-900 text-white p-3 shadow-lg sticky top-0 z-[60] flex justify-between items-center px-6">
+            <div class="flex items-center gap-6">
+                <h1 class="font-bold tracking-tight text-lg">CAREER DASHBOARD</h1>
+                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                    <button onclick="switchView('cv')" class="px-4 py-1.5 rounded-md text-sm font-medium transition hover:bg-slate-700">CV Manager</button>
+                    <button onclick="switchView('tracker')" class="px-4 py-1.5 rounded-md text-sm font-medium transition hover:bg-slate-700">Tracker</button>
+                </nav>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+                <span id="user-display"></span>
+                <button onclick="window.handleLogout()" class="hover:text-white underline">Logout</button>
+                <div class="w-px h-4 bg-slate-700"></div>
+                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded transition">Print PDF</button>
+            </div>
+        </div>
+
+        <div id="cv-toolbar" class="no-print bg-white border-b border-gray-200 sticky top-[56px] z-50">
+            <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
+                <div id="cv-tabs" class="flex space-x-4 overflow-x-auto"></div>
+                <div class="flex items-center gap-2">
+                    <button onclick="showImportModal()" class="text-xs font-bold px-3 py-1.5 bg-purple-50 text-purple-700 rounded border">Import AI JSON</button>
+                    <button onclick="addNewCV()" class="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded border">+ New</button>
+                    <button onclick="deleteCurrentCV()" class="text-xs font-bold px-3 py-1.5 bg-red-50 text-red-700 rounded border">Delete</button>
+                    <button onclick="toggleEditMode()" id="edit-toggle" class="text-xs font-bold px-3 py-1.5 bg-gray-100 rounded border">Edit Mode: OFF</button>
+                </div>
+            </div>
+            <div class="bg-gray-50 border-t border-gray-200 px-4 py-2 flex items-center justify-center gap-6">
+                <div class="flex gap-2">
+                    <button onclick="switchLanguage('en')" class="px-3 py-1 rounded text-xs font-bold transition">English</button>
+                    <button onclick="switchLanguage('he')" class="px-3 py-1 rounded text-xs font-bold transition">עברית</button>
+                </div>
+                <div id="formatting-toolbar" class="hidden flex items-center gap-3 bg-white p-1 px-3 rounded-full border border-gray-300 shadow-sm">
+                    <button onclick="format('bold')" class="px-2 font-bold hover:bg-gray-100 rounded">B</button>
+                    <button onclick="format('underline')" class="px-2 underline hover:bg-gray-100 rounded">U</button>
+                    <button onclick="applyStyle('fontSize', '14px')" class="px-2 text-xs font-bold hover:bg-gray-100 rounded">M</button>
+                    <button onclick="applyBubble()" class="px-3 py-0.5 bg-slate-900 text-white text-[10px] rounded-full font-bold">Make Bubble</button>
+                    <button onclick="format('removeFormat')" class="text-red-500 text-[10px] font-bold hover:bg-red-50 rounded px-2">RESET</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tracker-container" class="hidden max-w-6xl mx-auto p-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Application Tracker</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 border-b border-gray-200 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                        <tr><th class="px-6 py-4">Company</th><th class="px-6 py-4">Applied</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 text-right">Action</th></tr>
+                    </thead>
+                    <tbody id="jobs-list" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="resume-container"></div>
+    </div>
+
+    <!-- AI IMPORT MODAL -->
+    <div id="import-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6">
+            <h3 class="text-xl font-bold mb-4">Import Tailored JSON</h3>
+            <textarea id="ai-json-input" rows="10" placeholder='Paste JSON here...' class="w-full font-mono text-[10px] p-4 border rounded-lg bg-slate-50 mb-4"></textarea>
+            <div class="flex gap-2">
+                <button onclick="handleAIImport()" class="flex-1 bg-purple-600 text-white py-2 rounded-lg font-bold">Import Version</button>
+                <button onclick="copySchemaPrompt()" class="bg-gray-100 px-4 py-2 rounded-lg text-xs font-bold border">Copy Prompt</button>
+                <button onclick="hideImportModal()" class="px-4 py-2 text-xs border rounded-lg">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBe-XeRJTu0nvaJUbL9etf9LteyJ85b-No",
+            authDomain: "career-manager-9fc4e.firebaseapp.com",
+            projectId: "career-manager-9fc4e",
+            storageBucket: "career-manager-9fc4e.firebasestorage.app",
+            messagingSenderId: "861677311055",
+            appId: "1:861677311055:web:e1fe46c9c6d9b193b7c63a",
+            measurementId: "G-6P7TC5DT9N"
+        }; 
+
+        const appId = 'niv-career-v1';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        const APPROVED_EMAILS = ["niv.imber@gmail.com", "niv2006@gmail.com"];
+
+        const initialContent = {
+            en: {
+                name: "NIV IMBER",
+                title: "Site Manager | Head of Operations",
+                contact_info: `<div class="space-y-1.5 text-right flex flex-col items-end">
+                    <div class="flex items-center gap-2 font-medium"><span>052-3413683</span><span class="text-slate-300">|</span></div>
+                    <div class="flex items-center gap-2"><span>niv.imber@gmail.com</span><span class="text-slate-300">|</span></div>
+                    <div class="flex items-center gap-2"><span>Kfar Saba, Israel</span><span class="text-slate-300">|</span></div>
+                    <div class="flex items-center gap-2"><a href="https://linkedin.com/in/niv-imber-825627b/" target="_blank" class="text-blue-600 underline font-semibold">LinkedIn Profile</a><span class="text-slate-300">|</span></div>
+                </div>`,
+                profile: `<span style="font-size: 14px;">Dynamic Operations Leader...</span>`,
+                user1st_title: "Israeli Site Manager",
+                user1st_points: "<li>Strategic Site Leadership...</li>",
+                peninsula_points: "", leumi_points: "", 
+                education: `<div>Academic Center for Law and Science</div>`,
+                expertise: `<span class="cv-bubble">Operations</span>`,
+                tech_stack: "", languages: ""
+            },
+            he: {
+                name: "ניב אימבר", title: "מנהל אופרציה", contact_info: "052-3413683", profile: "...", user1st_title: "", user1st_points: "", peninsula_points: "", leumi_points: "", education: "", expertise: "", tech_stack: "", languages: ""
+            }
+        };
+
+        window.state = { currentView: 'cv', currentCVID: 0, currentLang: 'en', editMode: false, cvs: [] };
+
+        // --- AUTH FLOW ---
+        window.handleLogin = async () => {
+            document.getElementById('auth-loading').classList.remove('hidden');
+            document.getElementById('auth-actions').classList.add('hidden');
+            document.getElementById('auth-error').classList.add('hidden');
+            document.getElementById('auth-status').innerText = "Opening Google Sign-in...";
+
+            try {
+                // Ensure persistence is set so the session survives reloads
+                await setPersistence(auth, browserLocalPersistence);
+                await signInWithPopup(auth, provider);
+            } catch (err) {
+                const errDiv = document.getElementById('auth-error');
+                errDiv.innerText = "Login failed: " + err.message;
+                errDiv.classList.remove('hidden');
+                document.getElementById('auth-loading').classList.add('hidden');
+                document.getElementById('auth-actions').classList.remove('hidden');
+                document.getElementById('auth-status').innerText = "Login failed.";
+            }
+        };
+
+        window.handleLogout = () => signOut(auth).then(() => location.reload());
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-status').innerText = "Verifying email...";
+                const userEmail = (user.email || "").toLowerCase();
+                const isApproved = APPROVED_EMAILS.map(e => e.toLowerCase()).includes(userEmail);
+
+                if (user.email && !isApproved) {
+                    const errDiv = document.getElementById('auth-error');
+                    errDiv.innerHTML = `<strong>Access Denied</strong><br>${user.email} is not authorized.`;
+                    errDiv.classList.remove('hidden');
+                    document.getElementById('auth-loading').classList.add('hidden');
+                    document.getElementById('auth-actions').classList.add('hidden');
+                    document.getElementById('denied-actions').classList.remove('hidden');
+                    return;
+                }
+                
+                document.getElementById('auth-status').innerText = "Loading dashboard...";
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                document.getElementById('user-display').innerText = user.email;
+                initData(user.uid);
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('app-content').classList.add('hidden');
+                document.getElementById('auth-status').innerText = "Niv Imber's Career Management";
+            }
+        });
+
+        // --- DATA FLOW ---
+        function initData(uid) {
+            const cvDoc = doc(db, 'artifacts', appId, 'users', uid, 'cv_data', 'main');
+            
+            // onSnapshot with error handler to catch permission issues
+            onSnapshot(cvDoc, (snap) => {
+                if (snap.exists()) {
+                    window.state.cvs = snap.data().cvs;
+                    if (window.state.currentCVID === 0 && window.state.cvs.length > 0) window.state.currentCVID = window.state.cvs[0].id;
+                    render();
+                } else {
+                    const first = { id: Date.now(), name: "Standard CV", data: JSON.parse(JSON.stringify(initialContent)) };
+                    setDoc(cvDoc, { cvs: [first] }).catch(err => {
+                        console.error("SetDoc error:", err);
+                        alert("Permission denied writing to database. Check Firestore Rules.");
+                    });
+                }
+            }, (error) => {
+                console.error("Database error:", error);
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('app-content').classList.add('hidden');
+                const errDiv = document.getElementById('auth-error');
+                errDiv.innerHTML = `<strong>Database Error</strong><br>Your Firestore rules might be blocking access.<br><small>${error.message}</small>`;
+                errDiv.classList.remove('hidden');
+            });
+        }
+
+        window.saveToCloud = async () => {
+            if (!auth.currentUser) return;
+            const cvDoc = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'cv_data', 'main');
+            await setDoc(cvDoc, { cvs: window.state.cvs }).catch(e => console.error("Cloud Save failed", e));
+        };
+
+        window.saveCurrentEdit = () => {
+            const act = document.activeElement;
+            if (act && act.hasAttribute('data-key')) {
+                const cv = window.state.cvs.find(c => c.id === window.state.currentCVID);
+                if (cv) {
+                    cv.data[window.state.currentLang][act.getAttribute('data-key')] = act.innerHTML;
+                    window.saveToCloud();
+                }
+            }
+        };
+
+        window.switchView = (v) => {
+            window.state.currentView = v;
+            document.getElementById('view-cv-btn')?.classList.toggle('view-btn-active', v === 'cv');
+            document.getElementById('view-tracker-btn')?.classList.toggle('view-btn-active', v === 'tracker');
+            document.getElementById('cv-toolbar').classList.toggle('hidden', v !== 'cv');
+            document.getElementById('resume-container').classList.toggle('hidden', v !== 'cv');
+            document.getElementById('tracker-container').classList.toggle('hidden', v !== 'tracker');
+            render();
+        };
+
+        window.toggleEditMode = () => {
+            window.state.editMode = !window.state.editMode;
+            document.getElementById('edit-toggle').innerText = window.state.editMode ? 'Edit Mode: ON' : 'Edit Mode: OFF';
+            document.getElementById('formatting-toolbar').classList.toggle('hidden', !window.state.editMode);
+            render();
+        };
+
+        window.format = (c, v=null) => { document.execCommand(c, false, v); window.saveCurrentEdit(); };
+
+        window.applyStyle = (s, v) => {
+            const sel = window.getSelection();
+            if (!sel.rangeCount || sel.isCollapsed) return;
+            const span = document.createElement('span');
+            span.style[s] = v;
+            span.appendChild(sel.getRangeAt(0).extractContents());
+            sel.getRangeAt(0).insertNode(span);
+            window.saveCurrentEdit();
+        };
+
+        window.applyBubble = () => {
+            const sel = window.getSelection();
+            if (!sel.rangeCount || sel.isCollapsed) return;
+            const range = sel.getRangeAt(0);
+            const span = document.createElement('span');
+            span.className = 'cv-bubble';
+            span.textContent = sel.toString();
+            range.deleteContents();
+            range.insertNode(span);
+            span.after(document.createTextNode('\u00A0'));
+            window.saveCurrentEdit();
+        };
+
+        window.switchLanguage = (l) => { window.state.currentLang = l; render(); };
+        window.switchCV = (id) => { window.state.currentCVID = id; render(); };
+
+        window.addNewCV = () => {
+            const name = prompt("Name for this version:");
+            if (!name) return;
+            const cur = window.state.cvs.find(c => c.id === window.state.currentCVID);
+            window.state.cvs.push({ id: Date.now(), name, data: JSON.parse(JSON.stringify(cur.data)) });
+            window.saveToCloud();
+        };
+
+        window.deleteCurrentCV = () => {
+            if (window.state.cvs.length > 1 && confirm("Delete this version?")) {
+                window.state.cvs = window.state.cvs.filter(c => c.id !== window.state.currentCVID);
+                window.state.currentCVID = window.state.cvs[0].id;
+                window.saveToCloud();
+            }
+        };
+
+        window.showImportModal = () => document.getElementById('import-modal').classList.remove('hidden');
+        window.hideImportModal = () => document.getElementById('import-modal').classList.add('hidden');
+
+        window.copySchemaPrompt = () => {
+            const p = `Act as an expert CV Tailoring AI. NO CITATIONS. JSON ONLY. 
+1. EXPERTISE: Wrap each skill item in <span class="cv-bubble">Skill</span>.
+2. FONT: Wrap all body text in <span style="font-size: 14px;">.
+3. EDUCATION: Experience-style layout (h3 Institution, span Date, p Degree).`;
+            navigator.clipboard.writeText(p); alert("Bulletproof Prompt Copied!");
+        };
+
+        window.handleAIImport = () => {
+            try {
+                const json = document.getElementById('ai-json-input').value;
+                const d = JSON.parse(json);
+                const n = prompt("Name for this version:");
+                if (!n) return;
+                const base = JSON.parse(JSON.stringify(initialContent));
+                window.state.cvs.push({ id: Date.now(), name: n, data: { en: {...base.en, ...d.en}, he: {...base.he, ...d.he} } });
+                window.saveToCloud();
+                hideImportModal();
+            } catch (e) { alert("Invalid JSON format."); }
+        };
+
+        function render() {
+            const cont = document.getElementById('resume-container');
+            if (!cont) return;
+            const cv = window.state.cvs.find(c => c.id === window.state.currentCVID);
+            if (!cv) return;
+            const d = cv.data[window.state.currentLang];
+            const isHe = window.state.currentLang === 'he';
+            const edit = window.state.editMode ? 'contenteditable="true"' : '';
+
+            document.getElementById('cv-tabs').innerHTML = window.state.cvs.map(c => `<button onclick="switchCV(${c.id})" class="text-xs transition px-3 py-1 ${c.id === window.state.currentCVID ? 'tab-active' : 'text-gray-400'}">${c.name}</button>`).join('');
+
+            cont.innerHTML = `
+                <div class="resume-page ${isHe ? 'hebrew-font' : ''}" dir="${isHe ? 'rtl' : 'ltr'}">
+                    <header class="border-b-4 border-slate-800 pb-6 mb-8 flex justify-between items-start">
+                        <div class="flex-1">
+                            <h1 class="text-4xl font-bold text-slate-900 uppercase tracking-tight" ${edit} data-key="name" oninput="window.saveCurrentEdit()">${d.name}</h1>
+                            <p class="text-xl text-slate-600 font-medium mt-1 uppercase" ${edit} data-key="title" oninput="window.saveCurrentEdit()">${d.title}</p>
+                        </div>
+                        <div class="text-sm text-slate-500" ${edit} data-key="contact_info" oninput="window.saveCurrentEdit()">${d.contact_info}</div>
+                    </header>
+                    <div class="grid grid-cols-12 gap-8">
+                        <div class="col-span-8">
+                            <section class="mb-8">
+                                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Professional Profile</h2>
+                                <p class="text-slate-700 leading-relaxed" ${edit} data-key="profile" oninput="window.saveCurrentEdit()">${d.profile}</p>
+                            </section>
+                            <section class="mb-8">
+                                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Professional Experience</h2>
+                                <div class="mb-6">
+                                    <h3 class="font-bold text-slate-900 text-lg">User1st <span class="text-slate-400 text-xs ml-2 font-normal">2023–Present</span></h3>
+                                    <ul class="list-disc list-outside ml-4 text-slate-700 space-y-2" ${edit} data-key="user1st_points" oninput="window.saveCurrentEdit()">${d.user1st_points}</ul>
+                                </div>
+                                <div class="mb-6 pt-4 border-t border-slate-100">
+                                    <h3 class="font-bold text-slate-900 text-lg">Peninsula <span class="text-slate-400 text-xs ml-2 font-normal">2022–2023</span></h3>
+                                    <ul class="list-disc list-outside ml-4 text-slate-700 space-y-2" ${edit} data-key="peninsula_points" oninput="window.saveCurrentEdit()">${d.peninsula_points}</ul>
+                                </div>
+                            </section>
+                            <section class="mb-8 pt-6 border-t-2 border-slate-100">
+                                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Education</h2>
+                                <div ${edit} data-key="education" oninput="window.saveCurrentEdit()">${d.education}</div>
+                            </section>
+                        </div>
+                        <div class="col-span-4 bg-slate-50 p-6 rounded-lg h-fit border border-slate-100">
+                            <section class="mb-8"><h2 class="text-xs font-bold text-slate-400 uppercase mb-4">Expertise</h2><div class="flex flex-wrap gap-1" ${edit} data-key="expertise" oninput="window.saveCurrentEdit()">${d.expertise}</div></section>
+                            <section class="mb-8"><h2 class="text-xs font-bold text-slate-400 uppercase mb-4">Tech Stack</h2><div ${edit} data-key="tech_stack" oninput="window.saveCurrentEdit()">${d.tech_stack}</div></section>
+                            <section><h2 class="text-xs font-bold text-slate-400 uppercase mb-4">Languages</h2><div ${edit} data-key="languages" oninput="window.saveCurrentEdit()">${d.languages}</div></section>
+                        </div>
+                    </div>
+                </div>`;
+        }
+    </script>
+</body>
+</html>
