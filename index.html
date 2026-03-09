@@ -23,8 +23,8 @@
         <div class="text-center p-8 bg-slate-800 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-700">
             <h1 class="text-2xl font-bold mb-2">Private Dashboard</h1>
             <p class="text-slate-400 text-sm mb-8">Niv Imber's Career Management</p>
-            <button onclick="window.handleLogin()" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-100 transition">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5"> Sign in with Google
+            <button onclick="window.handleLogin()" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-100 transition shadow-lg">
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5"> Sign in with Google
             </button>
             <div id="auth-error" class="mt-4 text-red-400 text-xs hidden"></div>
         </div>
@@ -102,20 +102,19 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIG ---
-        // REPLACE THE 'null' BELOW WITH YOUR FIREBASE CONFIG OBJECT
+        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
-  apiKey: "AIzaSyBe-XeRJTu0nvaJUbL9etf9LteyJ85b-No",
-  authDomain: "career-manager-9fc4e.firebaseapp.com",
-  projectId: "career-manager-9fc4e",
-  storageBucket: "career-manager-9fc4e.firebasestorage.app",
-  messagingSenderId: "861677311055",
-  appId: "1:861677311055:web:e1fe46c9c6d9b193b7c63a",
-  measurementId: "G-6P7TC5DT9N"
-}; 
+            apiKey: "AIzaSyBe-XeRJTu0nvaJUbL9etf9LteyJ85b-No",
+            authDomain: "career-manager-9fc4e.firebaseapp.com",
+            projectId: "career-manager-9fc4e",
+            storageBucket: "career-manager-9fc4e.firebasestorage.app",
+            messagingSenderId: "861677311055",
+            appId: "1:861677311055:web:e1fe46c9c6d9b193b7c63a",
+            measurementId: "G-6P7TC5DT9N"
+        }; 
         
         const envConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const config = userConfig || envConfig;
+        const config = firebaseConfig || envConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'niv-career-v1';
 
         if (!config) {
@@ -178,7 +177,9 @@
             onSnapshot(cvDoc, (snap) => {
                 if (snap.exists()) {
                     window.state.cvs = snap.data().cvs;
-                    if (window.state.currentCVID === 0) window.state.currentCVID = window.state.cvs[0].id;
+                    if (window.state.currentCVID === 0 && window.state.cvs.length > 0) {
+                        window.state.currentCVID = window.state.cvs[0].id;
+                    }
                     render();
                 } else {
                     const first = { id: Date.now(), name: "Standard CV", data: JSON.parse(JSON.stringify(initialContent)) };
@@ -222,6 +223,7 @@
 
         window.applyBubble = () => {
             const sel = window.getSelection();
+            if (!sel.rangeCount || sel.isCollapsed) return;
             const span = document.createElement('span');
             span.className = 'cv-bubble';
             span.textContent = sel.toString();
@@ -235,8 +237,10 @@
             const act = document.activeElement;
             if (act && act.hasAttribute('data-key')) {
                 const cv = window.state.cvs.find(c => c.id === window.state.currentCVID);
-                cv.data[window.state.currentLang][act.getAttribute('data-key')] = act.innerHTML;
-                window.saveToCloud();
+                if (cv) {
+                    cv.data[window.state.currentLang][act.getAttribute('data-key')] = act.innerHTML;
+                    window.saveToCloud();
+                }
             }
         };
 
@@ -285,6 +289,7 @@
 
         function render() {
             const cont = document.getElementById('resume-container');
+            if (!cont) return;
             const cv = window.state.cvs.find(c => c.id === window.state.currentCVID);
             if (!cv) return;
             const d = cv.data[window.state.currentLang];
@@ -310,7 +315,7 @@
                             </section>
                             <section class="mb-8">
                                 <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Experience</h2>
-                                <div class="mb-6"><h3 class="font-bold text-lg">User1st</h3><ul class="list-disc ml-4 text-sm" ${edit} data-key="user1st_points" oninput="window.saveCurrentEdit()">${d.user1st_points}</ul></div>
+                                <div class="mb-6"><h3 class="font-bold text-lg">Experience Details</h3><ul class="list-disc ml-4 text-sm" ${edit} data-key="user1st_points" oninput="window.saveCurrentEdit()">${d.user1st_points}</ul></div>
                             </section>
                             <section class="mb-8 pt-6 border-t">
                                 <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Education</h2>
