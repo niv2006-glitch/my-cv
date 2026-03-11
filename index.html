@@ -118,8 +118,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Swapped signInWithRedirect for signInWithPopup
-        import { getAuth, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Brought back signInWithRedirect and getRedirectResult
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE CONFIGURATION ---
@@ -188,14 +188,21 @@
 
             try {
                 await setPersistence(auth, browserLocalPersistence);
-                // Updated to use popup instead of redirect
-                await signInWithPopup(auth, provider);
+                // Redirect is back!
+                await signInWithRedirect(auth, provider);
             } catch (err) {
                 showError("Login Error: " + err.message);
             }
         };
 
         window.handleLogout = () => signOut(auth).then(() => location.reload());
+
+        // We need this to catch errors coming back from the Google redirect
+        getRedirectResult(auth).catch(err => {
+            if (err && err.code !== 'auth/redirect-cancelled-by-user') {
+                showError("Redirect result error: " + err.message);
+            }
+        });
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -227,7 +234,6 @@
             errDiv.classList.remove('hidden');
             document.getElementById('auth-loading').classList.add('hidden');
             document.getElementById('auth-actions').classList.remove('hidden');
-            // Added this line to make sure the error is visible
             document.getElementById('auth-screen').classList.remove('hidden'); 
         }
 
