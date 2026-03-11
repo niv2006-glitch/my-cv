@@ -19,7 +19,6 @@
 </head>
 <body>
 
-    <!-- AUTH SCREEN -->
     <div id="auth-screen">
         <div class="text-center p-8 bg-slate-800 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-700">
             <div class="w-16 h-16 bg-blue-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
@@ -47,7 +46,6 @@
         </div>
     </div>
 
-    <!-- MAIN APP UI -->
     <div id="app-content" class="hidden">
         <div class="no-print bg-slate-900 text-white p-3 sticky top-0 z-[60] flex justify-between items-center px-6">
             <div class="flex items-center gap-6">
@@ -105,7 +103,6 @@
         <div id="resume-container"></div>
     </div>
 
-    <!-- AI IMPORT MODAL -->
     <div id="import-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-200">
             <h3 class="text-xl font-bold mb-2">Import Tailored JSON</h3>
@@ -121,7 +118,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Swapped signInWithRedirect for signInWithPopup
+        import { getAuth, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE CONFIGURATION ---
@@ -190,20 +188,14 @@
 
             try {
                 await setPersistence(auth, browserLocalPersistence);
-                await signInWithRedirect(auth, provider);
+                // Updated to use popup instead of redirect
+                await signInWithPopup(auth, provider);
             } catch (err) {
                 showError("Login Error: " + err.message);
             }
         };
 
         window.handleLogout = () => signOut(auth).then(() => location.reload());
-
-        // Handle Redirect Results (Coming back from Google)
-        getRedirectResult(auth).catch(err => {
-            if (err.code !== 'auth/redirect-cancelled-by-user') {
-                showError("Redirect result error: " + err.message);
-            }
-        });
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -235,6 +227,8 @@
             errDiv.classList.remove('hidden');
             document.getElementById('auth-loading').classList.add('hidden');
             document.getElementById('auth-actions').classList.remove('hidden');
+            // Added this line to make sure the error is visible
+            document.getElementById('auth-screen').classList.remove('hidden'); 
         }
 
         // --- DATA LOGIC ---
